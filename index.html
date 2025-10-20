@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mindcho - Juego de Memoria</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            color: white;
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .score-board {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 1rem 2rem;
+            margin-bottom: 2rem;
+            display: inline-block;
+        }
+
+        .score {
+            color: white;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 2rem;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .button {
+            aspect-ratio: 1;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .button:active {
+            transform: scale(0.95);
+        }
+
+        .button.active {
+            filter: brightness(1.5);
+            transform: scale(1.05);
+            box-shadow: 0 0 30px currentColor;
+        }
+
+        .button.disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        #red {
+            background-color: #e74c3c;
+            color: #e74c3c;
+        }
+
+        #blue {
+            background-color: #3498db;
+            color: #3498db;
+        }
+
+        #green {
+            background-color: #2ecc71;
+            color: #2ecc71;
+        }
+
+        #yellow {
+            background-color: #f1c40f;
+            color: #f1c40f;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .message {
+            background: rgba(255, 255, 255, 0.95);
+            color: #333;
+            padding: 1.5rem;
+            border-radius: 15px;
+            margin-top: 1rem;
+            font-size: 1.2rem;
+            font-weight: bold;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .message.error {
+            background: #e74c3c;
+            color: white;
+            animation: shake 0.5s;
+        }
+
+        .message.success {
+            background: #2ecc71;
+            color: white;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 2rem;
+            }
+
+            .game-board {
+                gap: 10px;
+                max-width: 300px;
+            }
+
+            .button {
+                border-radius: 15px;
+            }
+
+            .btn {
+                padding: 0.8rem 1.5rem;
+                font-size: 1rem;
+            }
+
+            .score {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 MindEcho</h1>
+       
+        <div class="score-board">
+            <div class="score">Puntuación: <span id="score">0</span></div>
+        </div>
+
+        <div class="game-board">
+            <button class="button" id="red" data-color="red"></button>
+            <button class="button" id="blue" data-color="blue"></button>
+            <button class="button" id="green" data-color="green"></button>
+            <button class="button" id="yellow" data-color="yellow"></button>
+        </div>
+
+        <div class="controls">
+            <button class="btn" id="startBtn">Iniciar Juego</button>
+            <button class="btn" id="resetBtn">Reiniciar</button>
+        </div>
+
+        <div class="message" id="message">¡Presiona "Iniciar Juego" para comenzar!</div>
+    </div>
+
+    <script>
+        // Clase para generar sonidos usando Web Audio API
+        class SoundGenerator {
+            constructor() {
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+
+            playTone(frequency, duration = 300) {
+                const oscillator = this.audioContext.createOscillator();
+                const gainNode = this.audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+
+                oscillator.frequency.value = frequency;
+                oscillator.type = 'sine';
+
+                gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + duration / 1000);
+
+                oscillator.start(this.audioContext.currentTime);
+                oscillator.stop(this.audioContext.currentTime + duration / 1000);
+            }
+        }
+
+        // Juego Simon
+        class SimonGame {
+            constructor() {
+                this.sequence = [];
+                this.playerSequence = [];
+                this.score = 0;
+                this.isPlaying = false;
+                this.isPlayerTurn = false;
+                this.soundGenerator = new SoundGenerator();
+               
+                // Frecuencias únicas para cada color
+                this.sounds = {
+                    red: 329.63,    // E4
+                    blue: 261.63,   // C4
+                    green: 392.00,  // G4
+                    yellow: 440.00  // A4
+                };
+
+                this.colors = ['red', 'blue', 'green', 'yellow'];
+                this.buttons = {};
+               
+                this.init();
+            }
+
+            init() {
+                // Obtener referencias a elementos
+                this.scoreElement = document.getElementById('score');
+                this.messageElement = document.getElementById('message');
+                this.startBtn = document.getElementById('startBtn');
+                this.resetBtn = document.getElementById('resetBtn');
+
+                // Obtener botones de colores
+                this.colors.forEach(color => {
+                    this.buttons[color] = document.getElementById(color);
+                    this.buttons[color].addEventListener('click', () => this.handlePlayerInput(color));
+                });
+
+                // Event listeners para controles
+                this.startBtn.addEventListener('click', () => this.startGame());
+                this.resetBtn.addEventListener('click', () => this.resetGame());
+            }
+
+            startGame() {
+                if (this.isPlaying) return;
+               
+                this.isPlaying = true;
+                this.sequence = [];
+                this.score = 0;
+                this.updateScore();
+                this.showMessage('¡Observa la secuencia!');
+                this.startBtn.disabled = true;
+               
+                setTimeout(() => this.nextRound(), 1000);
+            }
+
+            nextRound() {
+                this.playerSequence = [];
+                this.isPlayerTurn = false;
+               
+                // Agregar un color aleatorio a la secuencia
+                const randomColor = this.colors[Math.floor(Math.random() * this.colors.length)];
+                this.sequence.push(randomColor);
+               
+                this.showMessage(`Nivel ${this.sequence.length}`);
+                this.playSequence();
+            }
+
+            async playSequence() {
+                this.disableButtons();
+               
+                for (let i = 0; i < this.sequence.length; i++) {
+                    await this.wait(600);
+                    await this.lightUpButton(this.sequence[i]);
+                }
+               
+                this.enableButtons();
+                this.isPlayerTurn = true;
+                this.showMessage('¡Tu turno! Repite la secuencia');
+            }
+
+            async lightUpButton(color) {
+                const button = this.buttons[color];
+                button.classList.add('active');
+                this.soundGenerator.playTone(this.sounds[color]);
+               
+                await this.wait(400);
+                button.classList.remove('active');
+            }
+
+            handlePlayerInput(color) {
+                if (!this.isPlayerTurn || !this.isPlaying) return;
+               
+                this.lightUpButton(color);
+                this.playerSequence.push(color);
+               
+                const currentIndex = this.playerSequence.length - 1;
+               
+                // Verificar si el color es correcto
+                if (this.playerSequence[currentIndex] !== this.sequence[currentIndex]) {
+                    this.gameOver();
+                    return;
+                }
+               
+                // Si completó la secuencia correctamente
+                if (this.playerSequence.length === this.sequence.length) {
+                    this.score++;
+                    this.updateScore();
+                    this.isPlayerTurn = false;
+                    this.showMessage('¡Correcto! 🎉', 'success');
+                   
+                    setTimeout(() => this.nextRound(), 1500);
+                }
+            }
+
+            gameOver() {
+                this.isPlaying = false;
+                this.isPlayerTurn = false;
+                this.showMessage(`¡Game Over! Puntuación final: ${this.score}`, 'error');
+                this.disableButtons();
+                this.startBtn.disabled = false;
+               
+                // Reproducir sonido de error
+                this.soundGenerator.playTone(200, 500);
+            }
+
+            resetGame() {
+                this.isPlaying = false;
+                this.isPlayerTurn = false;
+                this.sequence = [];
+                this.playerSequence = [];
+                this.score = 0;
+                this.updateScore();
+                this.showMessage('¡Presiona "Iniciar Juego" para comenzar!');
+                this.startBtn.disabled = false;
+                this.enableButtons();
+            }
+
+            disableButtons() {
+                this.colors.forEach(color => {
+                    this.buttons[color].classList.add('disabled');
+                });
+            }
+
+            enableButtons() {
+                this.colors.forEach(color => {
+                    this.buttons[color].classList.remove('disabled');
+                });
+            }
+
+            updateScore() {
+                this.scoreElement.textContent = this.score;
+            }
+
+            showMessage(text, type = '') {
+                this.messageElement.textContent = text;
+                this.messageElement.className = 'message';
+                if (type) {
+                    this.messageElement.classList.add(type);
+                }
+            }
+
+            wait(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+
+        // Inicializar el juego cuando se carga la página
+        window.addEventListener('DOMContentLoaded', () => {
+            new SimonGame();
+        });
+    </script>
+</body>
+</html>
